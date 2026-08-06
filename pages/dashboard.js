@@ -100,6 +100,37 @@ export default function Dashboard() {
               <span style={{ fontSize:13, fontWeight:600, color:'#e2e8f0' }}>Plugins disponibles</span>
               <span style={{ fontSize:11, color:'#64748b' }}>Haz clic en un plugin para previsualizarlo a pantalla completa</span>
             </div>
+
+            {/* Flows - herramienta standalone */}
+            <div style={{ ...styles.pluginCard, background:'#1e3a5f', border:'1px solid #2563eb' }}>
+              <div style={{ display:'flex',alignItems:'flex-start',gap:16 }}>
+                <div style={{ fontSize:32, flexShrink:0, cursor:'pointer' }} onClick={() => router.push('/flows')}>📊</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:4 }}>
+                    <span style={{ fontSize:15, fontWeight:600, color:'#e2e8f0', cursor:'pointer' }} onClick={() => router.push('/flows')}>Flows</span>
+                    <span style={{ ...styles.badge, background:'#2563eb', color:'#93c5fd' }}>standalone</span>
+                    <span style={{ fontSize:10, color:'#60a5fa' }}>React Flow</span>
+                  </div>
+                  <div style={{ fontSize:12, color:'#94a3b8', marginBottom:10 }}>Editor de diagramas con nodos, figuras, conexiones. Exporta/importa JSON.</div>
+                  <div style={styles.urlSection}>
+                    <div style={styles.urlLabel}>Para WLO Marketplace</div>
+                    <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
+                      <div style={styles.urlRow}>
+                        <span style={styles.urlTag}>URL base</span>
+                        <code style={styles.urlCode}>{origin}</code>
+                        <button onClick={() => handleCopy(origin, 'flows-base')} style={styles.copyBtn}>{copied === 'flows-base' ? 'Copiado' : 'Copiar'}</button>
+                      </div>
+                      <div style={styles.urlRow}>
+                        <span style={styles.urlTag}>Ruta embed</span>
+                        <code style={styles.urlCode}>/flows</code>
+                        <button onClick={() => handleCopy('/flows', 'flows-embed')} style={styles.copyBtn}>{copied === 'flows-embed' ? 'Copiado' : 'Copiar'}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {plugins.filter(p => p.hasHtml).map(p => {
               const embedUrl = `${origin}/embed/${p.id}`
               const manifestUrl = `${origin}/api/plugins/${p.id}/manifest`
