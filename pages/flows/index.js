@@ -5,19 +5,10 @@ import { ArrowLeft, Plus, PenTool, Trash2 } from 'lucide-react'
 
 export default function FlowsList() {
   const router = useRouter()
-  const [user, setUser] = useState(null)
   const [flows, setFlows] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    import('@supabase/supabase-js').then(({ createClient }) => {
-      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session) router.push('/')
-        else { setUser(session.user); loadFlows() }
-      })
-    })
-  }, [])
+  useEffect(() => { loadFlows() }, [])
 
   async function loadFlows() {
     try {
