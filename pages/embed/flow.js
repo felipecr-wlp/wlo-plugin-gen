@@ -188,13 +188,20 @@ export default function FlowEmbed() {
 
   async function openShare() {
     setShowShare(true)
+    setShareMembers([])
+    setShares([])
     try { const r = await fetch(api(`/${flowId}`)); if (r.ok) { const f = await r.json(); setShares(f.shares || []) } } catch { }
     if (wsId !== 'demo') {
       setLoadingMembers(true)
       try {
         const r = await fetch('/api/wlo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'workspace/members' }) })
         if (r.ok) { const d = await r.json(); if (d.ok && d.data?.members) setShareMembers(d.data.members) }
-      } catch { }
+        else {
+          const d = await r.json().catch(() => ({}))
+          if (!d.ok && d.error) setError('WLO: ' + d.error)
+          else setError('No se pudo conectar con WLO. El token WLO_CONNECTOR_TOKEN debe estar configurado en Vercel.')
+        }
+      } catch { setError('Error de red al conectar con WLO') }
       setLoadingMembers(false)
     }
   }
