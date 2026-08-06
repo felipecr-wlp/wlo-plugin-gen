@@ -76,8 +76,9 @@ export default function FlowEmbed() {
   async function createFlow() {
     try {
       const r = await fetch(api(''), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Nuevo flujo' }) })
-      if (r.ok) { const f = await r.json(); openFlow(f.id) }
-    } catch { }
+      if (r.ok) { const f = await r.json(); if (f.id) openFlow(f.id); else alert('Error al crear: ' + JSON.stringify(f)) }
+      else { const e = await r.json().catch(() => ({})); alert('Error: ' + (e.error || r.status)) }
+    } catch (err) { alert('Error de conexion: ' + err.message) }
   }
 
   async function deleteFlow(id) {
