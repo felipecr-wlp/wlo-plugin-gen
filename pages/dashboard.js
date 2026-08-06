@@ -104,10 +104,10 @@ export default function Dashboard() {
             {/* Flows - herramienta standalone */}
             <div style={{ ...styles.pluginCard, background:'#1e3a5f', border:'1px solid #2563eb' }}>
               <div style={{ display:'flex',alignItems:'flex-start',gap:16 }}>
-                <div style={{ fontSize:32, flexShrink:0, cursor:'pointer' }} onClick={() => router.push('/flows')}>📊</div>
+                <div style={{ fontSize:32, flexShrink:0, cursor:'pointer' }} onClick={() => router.push('/embed/flow')}>📊</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:4 }}>
-                    <span style={{ fontSize:15, fontWeight:600, color:'#e2e8f0', cursor:'pointer' }} onClick={() => router.push('/flows')}>Flows</span>
+                    <span style={{ fontSize:15, fontWeight:600, color:'#e2e8f0', cursor:'pointer' }} onClick={() => router.push('/embed/flow')}>Flows</span>
                     <span style={{ ...styles.badge, background:'#2563eb', color:'#93c5fd' }}>standalone</span>
                     <span style={{ fontSize:10, color:'#60a5fa' }}>React Flow</span>
                   </div>
@@ -122,8 +122,8 @@ export default function Dashboard() {
                       </div>
                       <div style={styles.urlRow}>
                         <span style={styles.urlTag}>Ruta embed</span>
-                        <code style={styles.urlCode}>/flows</code>
-                        <button onClick={() => handleCopy('/flows', 'flows-embed')} style={styles.copyBtn}>{copied === 'flows-embed' ? 'Copiado' : 'Copiar'}</button>
+                        <code style={styles.urlCode}>/embed/flow</code>
+                        <button onClick={() => handleCopy('/embed/flow', 'flows-embed')} style={styles.copyBtn}>{copied === 'flows-embed' ? 'Copiado' : 'Copiar'}</button>
                       </div>
                     </div>
                   </div>
