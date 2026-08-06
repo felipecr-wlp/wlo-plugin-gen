@@ -57,6 +57,9 @@ function ShapeNode({ data, selected }) {
 export default function FlowEditorPage() {
   const router = useRouter()
   const { id } = router.query
+  const wsId = router.query.workspace_id || 'demo'
+  const instId = router.query.install_id || ''
+  const enmarcado = typeof window !== 'undefined' && window.top !== window
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
@@ -104,7 +107,7 @@ export default function FlowEditorPage() {
 
   useEffect(() => {
     if (!id) return
-    fetch(`/api/flows/${id}`).then(r => r.json()).then(f => {
+    fetch(`/api/flows/${id}?workspace_id=${encodeURIComponent(wsId)}`).then(r => r.json()).then(f => {
       if (f.id) {
         setTitle(f.title || '')
         setDescription(f.description || '')
@@ -113,7 +116,16 @@ export default function FlowEditorPage() {
       }
       setLoaded(true)
     }).catch(() => setLoaded(true))
-  }, [id])
+  }, [id, wsId])
+
+  useEffect(() => {
+    if (!enmarcado) return
+    const notify = () => window.parent.postMessage({ type: 'wlo-resize', height: document.body.scrollHeight + 40 }, '*')
+    notify()
+    const ro = new ResizeObserver(notify)
+    ro.observe(document.body)
+    return () => ro.disconnect()
+  }, [loaded])
 
   function pushHistory(n, e) {
     const h = history.current
@@ -126,7 +138,7 @@ export default function FlowEditorPage() {
   async function save(n, e) {
     setSaving(true)
     try {
-      await fetch(`/api/flows/${id}`, {
+      await fetch(`/api/flows/${id}?workspace_id=${encodeURIComponent(wsId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, description, nodes: n || nodes, edges: e || edges }),
@@ -314,6 +326,14 @@ export default function FlowEditorPage() {
           <button onClick={handleImport} className="inline-flex items-center gap-1 rounded-md border bg-white hover:bg-gray-50 h-8 px-3 py-1 text-sm" title="Importar"><Upload size={14} />Importar</button>
           <button onClick={() => setShowShare(true)} className="inline-flex items-center gap-1 rounded-md border bg-white hover:bg-gray-50 h-8 px-3 py-1 text-sm" title="Compartir"><Share2 size={14} />Compartir</button>
         </header>
+
+        {wsId !== 'demo' && (
+          <div className="flex items-center gap-4 px-4 py-1.5 bg-gray-50 border-b text-[11px] text-gray-400">
+            <span>Workspace: <code className="text-blue-500 font-mono">{wsId}</code></span>
+            {instId && <span>Install: <code className="text-blue-500 font-mono">{instId.slice(0, 8)}...</code></span>}
+            <span className={enmarcado ? 'text-emerald-600' : 'text-gray-400'}>{enmarcado ? 'WLO' : 'standalone'}</span>
+          </div>
+        )}
 
         {/* Toolbar */}
         <div className="flex items-center gap-1 px-2 py-1 border-b bg-gray-50 shrink-0">

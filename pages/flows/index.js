@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { ArrowLeft, Plus, PenTool, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, PenTool, Trash2, ExternalLink } from 'lucide-react'
 
 export default function FlowsList() {
   const router = useRouter()
   const [flows, setFlows] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { loadFlows() }, [])
+  // Leer contexto de WLO (si viene embebido) o usar demo
+  const wsId = router.query.workspace_id || 'demo'
+  const instId = router.query.install_id || ''
+  const enmarcado = typeof window !== 'undefined' && window.top !== window
+
+  useEffect(() => { loadFlows() }, [wsId])
+  useEffect(() => {
+    if (!enmarcado) return
+    const notify = () => window.parent.postMessage({ type: 'wlo-resize', height: document.body.scrollHeight + 40 }, '*')
+    notify(); const ro = new ResizeObserver(notify); ro.observe(document.body); return () => ro.disconnect()
+  }, [flows.length])
 
   async function loadFlows() {
     try {
-      const r = await fetch('/api/flows')
+      const r = await fetch(`/api/flows?workspace_id=${encodeURIComponent(wsId)}`)
       if (r.ok) setFlows(await r.json())
     } catch { }
     setLoading(false)
@@ -20,21 +30,21 @@ export default function FlowsList() {
 
   async function createFlow() {
     try {
-      const r = await fetch('/api/flows', {
+      const r = await fetch(`/api/flows?workspace_id=${encodeURIComponent(wsId)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: 'Nuevo flujo' }),
       })
       if (r.ok) {
         const flow = await r.json()
-        router.push(`/flows/${flow.id}`)
+        router.push({ pathname: `/flows/${flow.id}`, query: { workspace_id: wsId, install_id: instId } })
       }
     } catch { }
   }
 
   async function deleteFlow(id) {
     if (!confirm('Eliminar este flujo?')) return
-    await fetch(`/api/flows/${id}`, { method: 'DELETE' })
+    await fetch(`/api/flows/${id}?workspace_id=${encodeURIComponent(wsId)}`, { method: 'DELETE' })
     loadFlows()
   }
 
@@ -57,6 +67,14 @@ export default function FlowsList() {
           </button>
         </div>
 
+        {wsId !== 'demo' && (
+          <div style={styles.contextBar}>
+            <span style={{ fontSize:11, color:'#64748b' }}>Workspace: <code style={styles.contextCode}>{wsId}</code></span>
+            {instId && <span style={{ fontSize:11, color:'#64748b' }}>Install: <code style={styles.contextCode}>{instId.slice(0,8)}...</code></span>}
+            {enmarcado ? <span style={{ fontSize:10, color:'#4ade80', background:'#064e3b', padding:'1px 6px', borderRadius:4 }}>WLO</span> : <span style={{ fontSize:10, color:'#64748b' }}>standalone</span>}
+          </div>
+        )}
+
         {loading ? (
           <div style={{ display:'flex',alignItems:'center',justifyContent:'center',padding:80,color:'#64748b' }}>
             Cargando...
@@ -65,7 +83,7 @@ export default function FlowsList() {
           <div style={{ display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:80 }}>
             <PenTool size={48} style={{ color:'#334155',marginBottom:16 }} />
             <h2 style={{ fontSize:16, fontWeight:600, color:'#94a3b8', marginBottom:8 }}>No hay flujos</h2>
-            <p style={{ fontSize:13, color:'#64748b', marginBottom:20 }}>Crea tu primer diagrama de flujo</p>
+            <p style={{ fontSize:13, color:'#64748b', marginBottom:20 }}>{wsId === 'demo' ? 'Modo demo: los flujos se guardan localmente.' : 'Crea tu primer diagrama de flujo.'}</p>
             <button onClick={createFlow} style={styles.btnPrimary}>
               <Plus size={14} /> Crear flujo
             </button>
@@ -73,7 +91,7 @@ export default function FlowsList() {
         ) : (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:16, padding:24, maxWidth:1000, margin:'0 auto' }}>
             {flows.map(f => (
-              <div key={f.id} style={styles.card} onClick={() => router.push(`/flows/${f.id}`)}>
+              <div key={f.id} style={styles.card} onClick={() => router.push({ pathname: `/flows/${f.id}`, query: { workspace_id: wsId, install_id: instId } })}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:14, fontWeight:600, color:'#e2e8f0', marginBottom:4 }}>{f.title || 'Sin titulo'}</div>
@@ -98,6 +116,8 @@ export default function FlowsList() {
 
 const styles = {
   header: { background:'#0f172a', borderBottom:'1px solid #1e293b', padding:'14px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' },
+  contextBar: { background:'#1e293b', borderBottom:'1px solid #334155', padding:'6px 24px', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' },
+  contextCode: { fontSize:10, color:'#60a5fa', fontFamily:'monospace' },
   btnOutline: { display:'inline-flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:6, fontSize:12, fontWeight:500, border:'1px solid #334155', background:'transparent', color:'#94a3b8', cursor:'pointer' },
   btnPrimary: { display:'inline-flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:8, fontSize:13, fontWeight:600, border:'none', background:'#3b82f6', color:'#fff', cursor:'pointer' },
   btnDanger: { padding:'4px', borderRadius:6, border:'1px solid transparent', background:'transparent', color:'#475569', cursor:'pointer' },
