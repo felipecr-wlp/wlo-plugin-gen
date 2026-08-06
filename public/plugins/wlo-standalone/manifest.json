@@ -1,0 +1,12 @@
+{
+  "name": "Plugin Standalone",
+  "id": "wlo-standalone",
+  "version": "1.0.0",
+  "type": "widget",
+  "icon": "globe",
+  "description": "Plugin 100% independiente (HTML/JS). Demo del sistema de plugins via iframe.",
+  "author": "WLO Team",
+  "wlo_version": ">=1.0.0",
+  "slots": ["dashboard"],
+  "base_url": ""
+}
