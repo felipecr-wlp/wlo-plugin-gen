@@ -131,6 +131,9 @@ export default function FlowEmbed() {
   const [altHeld, setAltHeld] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [shareMembers, setShareMembers] = useState([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
+  const [shares, setShares] = useState([])
   const [editingNodeId, setEditingNodeId] = useState(null)
   const [nodeLabel, setNodeLabel] = useState(''); const [nodeContent, setNodeContent] = useState('')
   const [nodeType, setNodeType] = useState('text'); const [nodeFields, setNodeFields] = useState([])
@@ -182,6 +185,28 @@ export default function FlowEmbed() {
   function handleEdgeContextMenu(e, edge) { e.preventDefault(); setCtxMenu(null); setCtxEdgeMenu({ x: e.clientX, y: e.clientY, edgeId: edge.id }) }
   function handleEdgeClick() { const edge = edges.find(e => e.id === ctxEdgeMenu?.edgeId); if (edge) { setEditingEdgeId(edge.id); setEdgeLabel(edge.label || ''); setEdgeColor(edge.style?.stroke || '#64748b'); setEdgeWidth(edge.style?.strokeWidth || 2); setEdgeAnim(edge.animated || false); setEdgeType(edge.type || 'default'); setCtxEdgeMenu(null) } }
   const handleExport = () => { const data = { title, description, nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${title || 'flujo'}.wlo.json`; a.click(); URL.revokeObjectURL(url) }
+
+  async function openShare() {
+    setShowShare(true)
+    try { const r = await fetch(api(`/${flowId}`)); if (r.ok) { const f = await r.json(); setShares(f.shares || []) } } catch { }
+    if (wsId !== 'demo') {
+      setLoadingMembers(true)
+      try {
+        const r = await fetch('/api/wlo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'workspace/members' }) })
+        if (r.ok) { const d = await r.json(); if (d.ok && d.data?.members) setShareMembers(d.data.members) }
+      } catch { }
+      setLoadingMembers(false)
+    }
+  }
+
+  async function toggleShare(profileId) {
+    const already = shares.find(s => s.profile_id === profileId)
+    let newShares
+    if (already) { newShares = shares.filter(s => s.profile_id !== profileId) }
+    else { newShares = [...shares, { profile_id: profileId, permission: 'view' }] }
+    setShares(newShares)
+    await fetch(api(`/${flowId}`), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shares: newShares }) })
+  }
   const handleImport = () => { const el = document.createElement('input'); el.type = 'file'; el.accept = '.json'; el.onchange = async (ev) => { const file = ev.target.files?.[0]; if (!file) return; try { const text = await file.text(); const data = JSON.parse(text); if (data.nodes) { setNodes(data.nodes); setEdges(data.edges || []); if (data.title) setTitle(data.title); if (data.description !== undefined) setDescription(data.description); autoSave(data.nodes, data.edges || []) } } catch { } }; el.click() }
   const toggleFullscreen = useCallback(async () => { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen() }, [])
   const selCount = nodes.filter(n => n.selected).length
@@ -196,7 +221,7 @@ export default function FlowEmbed() {
         <button onClick={() => save()} disabled={saving} className="inline-flex items-center gap-1 rounded-md border bg-white hover:bg-gray-50 h-8 px-3 py-1 text-sm"><Save size={14} />Guardar</button>
         <button onClick={handleExport} className="inline-flex items-center gap-1 rounded-md border bg-white hover:bg-gray-50 h-8 px-3 py-1 text-sm"><Download size={14} />Exportar</button>
         <button onClick={handleImport} className="inline-flex items-center gap-1 rounded-md border bg-white hover:bg-gray-50 h-8 px-3 py-1 text-sm"><Upload size={14} />Importar</button>
-        <button onClick={() => setShowShare(true)} className="inline-flex items-center gap-1 rounded-md border bg-white hover:bg-gray-50 h-8 px-3 py-1 text-sm"><Share2 size={14} />Compartir</button>
+        <button onClick={openShare} className="inline-flex items-center gap-1 rounded-md border bg-white hover:bg-gray-50 h-8 px-3 py-1 text-sm"><Share2 size={14} />Compartir</button>
       </header>
       <div className="flex items-center gap-1 px-2 py-1 border-b bg-gray-50 shrink-0">
         <button onClick={() => setTopBarCollapsed(!topBarCollapsed)} className="p-1 hover:bg-gray-200 rounded text-gray-500"><ChevronDown size={14} className={`transition-transform ${topBarCollapsed ? '-rotate-90' : ''}`} /></button>
@@ -288,8 +313,34 @@ export default function FlowEmbed() {
         </div>
       </Modal>}
       {showShare && <Modal onClose={() => setShowShare(false)} title="Compartir">
-        <p className="text-xs text-gray-500 mb-3">Copia el enlace para compartir este flujo.</p>
-        <div className="flex gap-2"><code className="flex-1 text-xs bg-gray-100 rounded px-3 py-2 break-all font-mono">{typeof window !== 'undefined' ? `${window.location.origin}/flows/${flowId}?workspace_id=${wsId}` : ''}</code><button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/flows/${flowId}?workspace_id=${wsId}`) }} className="shrink-0 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50">Copiar</button></div>
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs text-gray-500 mb-2">Enlace directo</p>
+            <div className="flex gap-2"><code className="flex-1 text-xs bg-gray-100 rounded px-3 py-2 break-all font-mono">{typeof window !== 'undefined' ? `${window.location.origin}/flows/${flowId}?workspace_id=${wsId}` : ''}</code><button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/flows/${flowId}?workspace_id=${wsId}`) }} className="shrink-0 px-3 py-2 text-xs border rounded-lg hover:bg-gray-50">Copiar</button></div>
+          </div>
+          {wsId !== 'demo' && (
+            <div>
+              <p className="text-xs font-medium text-gray-700 mb-2">Miembros del workspace ({shareMembers.length})</p>
+              {loadingMembers ? <p className="text-xs text-gray-400">Cargando miembros...</p> : shareMembers.length === 0 ? <p className="text-xs text-gray-400">No se pudieron cargar los miembros. Configura WLO_CONNECTOR_TOKEN en Vercel.</p> : (
+                <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-1">
+                  {shareMembers.map(m => {
+                    const isShared = shares.some(s => s.profile_id === m.id)
+                    return (
+                      <button key={m.id} onClick={() => toggleShare(m.id)} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors ${isShared ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`}>
+                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 shrink-0">{(m.name || '?')[0].toUpperCase()}</div>
+                        <span className="flex-1 truncate">{m.name}</span>
+                        <span className="text-[10px] text-gray-400">{m.role}</span>
+                        {isShared && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">compartido</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              {shares.length > 0 && <p className="text-[11px] text-gray-400 mt-2">Compartido con {shares.length} miembro(s)</p>}
+            </div>
+          )}
+          {wsId === 'demo' && <p className="text-xs text-gray-400">Modo demo: comparte copiando el enlace. En WLO se muestran los miembros del workspace.</p>}
+        </div>
       </Modal>}
     </div>
   )
