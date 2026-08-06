@@ -1,7 +1,4 @@
 {
-  "rewrites": [
-    { "source": "/embed/:plugin", "destination": "/embed/[plugin]" }
-  ],
   "headers": [
     {
       "source": "/embed/(.*)",

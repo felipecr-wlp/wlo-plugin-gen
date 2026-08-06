@@ -55,13 +55,19 @@ export default function FlowEmbed() {
   const [loading, setLoading] = useState(true)
   const enmarcado = typeof window !== 'undefined' && window.top !== window
 
-  // Leer contexto de WLO
-  const wsId = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search)).get('workspace_id') || 'demo' : 'demo'
-  const instId = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search)).get('install_id') || '' : ''
+  // Leer contexto de WLO (solo cliente, evitar hydration mismatch)
+  const [wsId, setWsId] = useState('demo')
+  const [instId, setInstId] = useState('')
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    setWsId(p.get('workspace_id') || 'demo')
+    setInstId(p.get('install_id') || '')
+  }, [])
 
   const api = (path) => `/api/flows${path}?workspace_id=${encodeURIComponent(wsId)}`
 
-  useEffect(() => { loadFlows() }, [])
+  useEffect(() => { loadFlows() }, [wsId])
   useEffect(() => {
     if (!enmarcado) return
     const notify = () => window.parent.postMessage({ type: 'wlo-resize', height: document.body.scrollHeight + 40 }, '*')
