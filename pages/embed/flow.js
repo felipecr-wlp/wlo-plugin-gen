@@ -53,6 +53,8 @@ export default function FlowEmbed() {
   const [flowId, setFlowId] = useState(null)
   const [flows, setFlows] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [creating, setCreating] = useState(false)
   const enmarcado = typeof window !== 'undefined' && window.top !== window
 
   // Leer contexto de WLO (solo cliente, evitar hydration mismatch)
@@ -80,11 +82,19 @@ export default function FlowEmbed() {
   }
 
   async function createFlow() {
+    setCreating(true); setError(null)
     try {
       const r = await fetch(api(''), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Nuevo flujo' }) })
-      if (r.ok) { const f = await r.json(); if (f.id) openFlow(f.id); else alert('Error al crear: ' + JSON.stringify(f)) }
-      else { const e = await r.json().catch(() => ({})); alert('Error: ' + (e.error || r.status)) }
-    } catch (err) { alert('Error de conexion: ' + err.message) }
+      if (r.ok) {
+        const f = await r.json()
+        if (f.id) openFlow(f.id)
+        else setError('Error al crear: ' + JSON.stringify(f))
+      } else {
+        const e = await r.json().catch(() => ({}))
+        setError('Error: ' + (e.error || r.status))
+      }
+    } catch (err) { setError('Error de conexion: ' + err.message) }
+    setCreating(false)
   }
 
   async function deleteFlow(id) {
@@ -299,19 +309,26 @@ export default function FlowEmbed() {
               </div>
             )}
           </div>
-          {loading ? <div style={{ padding: 60, textAlign: 'center', color: '#94a3b8' }}>Cargando...</div> :
-            flows.length === 0 ? (
+          {loading && <div style={{ padding: 60, textAlign: 'center', color: '#94a3b8' }}>Cargando...</div>}
+          {!loading && (
+          <div>
+          {error && (
+            <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 12, color: '#dc2626' }}>
+              {error} <button onClick={() => setError(null)} style={{ marginLeft: 12, color: '#dc2626', textDecoration: 'underline', border: 'none', background: 'none', cursor: 'pointer', fontSize: 11 }}>Cerrar</button>
+            </div>
+          )}
+          {flows.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 80 }}>
                 <PenTool size={48} style={{ color: '#cbd5e1', marginBottom: 16 }} />
                 <h2 style={{ fontSize: 16, fontWeight: 600, color: '#64748b', marginBottom: 8 }}>No hay flujos</h2>
                 <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>{wsId === 'demo' ? 'Modo demo. Crea tu primer flujo.' : 'Crea tu primer diagrama.'}</p>
-                <button onClick={createFlow} style={styles.btnPrimary}><Plus size={14} /> Crear flujo</button>
+                <button onClick={createFlow} disabled={creating} style={{ ...styles.btnPrimary, opacity: creating ? 0.5 : 1 }}><Plus size={14} /> {creating ? 'Creando...' : 'Crear flujo'}</button>
               </div>
             ) : (
               <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <span style={{ fontSize: 12, color: '#94a3b8' }}>{flows.length} flujo(s)</span>
-                  <button onClick={createFlow} style={styles.btnPrimary}><Plus size={14} /> Nuevo flujo</button>
+                  <button onClick={createFlow} disabled={creating} style={{ ...styles.btnPrimary, opacity: creating ? 0.5 : 1 }}><Plus size={14} /> {creating ? 'Creando...' : 'Nuevo flujo'}</button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
                   {flows.map(f => (
@@ -328,6 +345,8 @@ export default function FlowEmbed() {
                 </div>
               </div>
             )}
+          </div>
+          )}
         </div>
       ) : <EditorView />}
     </>
