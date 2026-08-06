@@ -114,6 +114,20 @@ export default function PluginDetail() {
 
         {mode === 'preview' ? (
           <div style={{ flex: 1, background: '#fff' }}>
+            <div style={styles.publishBar}>
+              <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
+                <span style={{ fontSize:11,fontWeight:600,color:'#94a3b8' }}>Publicar en WLO:</span>
+                <span style={{ fontSize:10,color:'#64748b' }}>URL base</span>
+                <code style={styles.pubCode}>{typeof window !== 'undefined' ? window.location.origin : ''}</code>
+                <button onClick={() => { navigator.clipboard.writeText(typeof window !== 'undefined' ? window.location.origin : '') }} style={styles.pubCopy}>Copiar</button>
+                <span style={{ fontSize:10,color:'#64748b' }}>Ruta embed</span>
+                <code style={styles.pubCode}>/embed/{id}</code>
+                <button onClick={() => { navigator.clipboard.writeText(`/embed/${id}`) }} style={styles.pubCopy}>Copiar</button>
+                <span style={{ fontSize:11,color:'#64748b',marginLeft:8 }}>| Manifest:</span>
+                <code style={styles.pubCode}>{manifestUrl || `/api/plugins/${id}/manifest`}</code>
+                <button onClick={() => { navigator.clipboard.writeText(manifestUrl || `${typeof window !== 'undefined' ? window.location.origin : ''}/api/plugins/${id}/manifest`) }} style={styles.pubCopy}>Copiar</button>
+              </div>
+            </div>
             {previewSrc ? (
               <iframe src={previewSrc} sandbox="allow-scripts" style={{ width: '100%', height: '100%', border: 'none' }} />
             ) : (
@@ -188,5 +202,16 @@ const styles = {
     width: '100%', padding: '6px 10px', borderRadius: 6, fontSize: 12,
     border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0', outline: 'none',
     boxSizing: 'border-box',
+  },
+  publishBar: {
+    padding: '8px 16px', background: '#1e293b', borderBottom: '1px solid #334155',
+    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4,
+  },
+  pubCode: {
+    fontSize: 11, color: '#60a5fa', background: '#0f172a', padding: '3px 8px', borderRadius: 4, fontFamily: 'monospace',
+  },
+  pubCopy: {
+    padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 500,
+    border: '1px solid #334155', background: 'transparent', color: '#94a3b8', cursor: 'pointer',
   },
 }
