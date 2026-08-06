@@ -83,17 +83,30 @@ export default function FlowEmbed() {
 
   async function createFlow() {
     setCreating(true); setError(null)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
     try {
-      const r = await fetch(api(''), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Nuevo flujo' }) })
-      if (r.ok) {
-        const f = await r.json()
-        if (f.id) openFlow(f.id)
-        else setError('Error al crear: ' + JSON.stringify(f))
+      console.log('[createFlow] calling', api(''))
+      const r = await fetch(api(''), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Nuevo flujo' }),
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+      console.log('[createFlow] status', r.status)
+      const data = await r.json().catch(() => ({}))
+      console.log('[createFlow] data', data)
+      if (r.ok && data.id) {
+        openFlow(data.id)
       } else {
-        const e = await r.json().catch(() => ({}))
-        setError('Error: ' + (e.error || r.status))
+        setError('Error: ' + (data.error || data.message || JSON.stringify(data) || r.status))
       }
-    } catch (err) { setError('Error de conexion: ' + err.message) }
+    } catch (err) {
+      clearTimeout(timeout)
+      if (err.name === 'AbortError') setError('La peticion tardo demasiado. Revisa la conexion.')
+      else setError('Error de red: ' + err.message)
+    }
     setCreating(false)
   }
 

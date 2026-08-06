@@ -32,7 +32,8 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { title, description } = req.body || {}
+    const body = typeof req.body === 'object' ? req.body : {}
+    const { title, description } = body
     const id = `flow-${Date.now()}`
     const flow = { id, title: title || 'Nuevo flujo', description: description || '', nodes: [], edges: [], workspace_id: workspaceId, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
     const blob = new Blob([JSON.stringify(flow)], { type: 'application/json' })
@@ -41,4 +42,6 @@ export default async function handler(req, res) {
     if (error) return res.status(500).json({ error: error.message })
     return res.json(flow)
   }
+
+  res.status(405).json({ error: 'Method not allowed' })
 }
