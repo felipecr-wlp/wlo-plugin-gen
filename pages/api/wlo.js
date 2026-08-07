@@ -11,7 +11,7 @@
  *   Content-Type: application/json
  */
 
-const WLO = process.env.WLO_BASE_URL || 'https://wlo.vercel.app'
+const WLO = process.env.WLO_BASE_URL || 'https://wlo-plugin.vercel.app'
 
 export default async function handler(req, res) {
   // CORS para iframes con origen opaco (sandbox sin allow-same-origin)

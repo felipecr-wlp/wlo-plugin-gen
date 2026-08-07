@@ -60,11 +60,20 @@ export default function FlowEmbed() {
   // Leer contexto de WLO (solo cliente, evitar hydration mismatch)
   const [wsId, setWsId] = useState('demo')
   const [instId, setInstId] = useState('')
+  const [userName, setUserName] = useState('')
+  const [userRole, setUserRole] = useState('')
+  const [membersList, setMembersList] = useState([])
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
     setWsId(p.get('workspace_id') || 'demo')
     setInstId(p.get('install_id') || '')
+    setUserName(p.get('user_name') || '')
+    setUserRole(p.get('user_role') || '')
+    try {
+      const m = p.get('members')
+      if (m) setMembersList(JSON.parse(m))
+    } catch { }
   }, [])
 
   const api = (path) => `/api/flows${path}?workspace_id=${encodeURIComponent(wsId)}`
@@ -131,8 +140,6 @@ export default function FlowEmbed() {
   const [altHeld, setAltHeld] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showShare, setShowShare] = useState(false)
-  const [shareMembers, setShareMembers] = useState([])
-  const [loadingMembers, setLoadingMembers] = useState(false)
   const [shares, setShares] = useState([])
   const [editingNodeId, setEditingNodeId] = useState(null)
   const [nodeLabel, setNodeLabel] = useState(''); const [nodeContent, setNodeContent] = useState('')
@@ -188,22 +195,10 @@ export default function FlowEmbed() {
 
   async function openShare() {
     setShowShare(true)
-    setShareMembers([])
     setShares([])
     try { const r = await fetch(api(`/${flowId}`)); if (r.ok) { const f = await r.json(); setShares(f.shares || []) } } catch { }
-    if (wsId !== 'demo') {
-      setLoadingMembers(true)
-      try {
-        const r = await fetch('/api/wlo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'workspace/members' }) })
-        if (r.ok) { const d = await r.json(); if (d.ok && d.data?.members) setShareMembers(d.data.members) }
-        else {
-          const d = await r.json().catch(() => ({}))
-          if (!d.ok && d.error) setError('WLO: ' + d.error)
-          else setError('No se pudo conectar con WLO. El token WLO_CONNECTOR_TOKEN debe estar configurado en Vercel.')
-        }
-      } catch { setError('Error de red al conectar con WLO') }
-      setLoadingMembers(false)
-    }
+    // Los miembros vienen en la URL (WLO los pasa como param `members`)
+    // No se necesita token ni API: vienen directo del iframe.
   }
 
   async function toggleShare(profileId) {
@@ -327,10 +322,10 @@ export default function FlowEmbed() {
           </div>
           {wsId !== 'demo' && (
             <div>
-              <p className="text-xs font-medium text-gray-700 mb-2">Miembros del workspace ({shareMembers.length})</p>
-              {loadingMembers ? <p className="text-xs text-gray-400">Cargando miembros...</p> : shareMembers.length === 0 ? <p className="text-xs text-gray-400">No se pudieron cargar los miembros. Configura WLO_CONNECTOR_TOKEN en Vercel.</p> : (
+              <p className="text-xs font-medium text-gray-700 mb-2">Miembros del workspace ({membersList.length})</p>
+              {membersList.length === 0 ? <p className="text-xs text-gray-400">No se pudieron cargar los miembros.</p> : (
                 <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-1">
-                  {shareMembers.map(m => {
+                  {membersList.map(m => {
                     const isShared = shares.some(s => s.profile_id === m.id)
                     return (
                       <button key={m.id} onClick={() => toggleShare(m.id)} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors ${isShared ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`}>
@@ -371,7 +366,7 @@ export default function FlowEmbed() {
               <Layout size={20} style={{ color: '#3b82f6' }} />
               <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b' }}>Flows</h1>
               <span style={{ fontSize: 11, color: '#94a3b8', background: '#f1f5f9', padding: '2px 8px', borderRadius: 99 }}>{flows.length}</span>
-              {wsId !== 'demo' && <span style={{ fontSize: 10, color: '#3b82f6', background: '#eff6ff', padding: '2px 6px', borderRadius: 4 }}>{enmarcado ? 'WLO' : 'standalone'}</span>}
+              {wsId !== 'demo' && <span style={{ fontSize: 10, color: '#3b82f6', background: '#eff6ff', padding: '2px 6px', borderRadius: 4 }}>{userName || enmarcado ? 'WLO' : 'standalone'}</span>}
             </div>
             {!enmarcado && (
               <div style={{ display: 'flex', gap: 8 }}>
